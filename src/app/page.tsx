@@ -46,6 +46,7 @@ export default function HomePage() {
   const [allCommits, setAllCommits] = React.useState<CommitRow[]>([]);
   const [contacts, setContacts] = React.useState<PanicContactRow[]>([]);
   const [panicOpen, setPanicOpen] = React.useState(false);
+  const [randomHadith, setRandomHadith] = React.useState<{ content_pt: string; source: string } | null>(null);
 
   const todayISO = React.useMemo(() => toISODate(new Date()), []);
 
@@ -86,6 +87,12 @@ export default function HomePage() {
       // Fetch all commits for overview
       const { data: commits } = await supabase.from("vicio_commits").select("*").order("commit_date", { ascending: true });
       if (commits) setAllCommits(commits as CommitRow[]);
+
+      // Fetch random hadith
+      const { data: hadiths } = await supabase.from("hadiths").select("content_pt, source");
+      if (hadiths && hadiths.length > 0) {
+        setRandomHadith(hadiths[Math.floor(Math.random() * hadiths.length)]);
+      }
     }
     load();
   }, [userId, supabase]);
