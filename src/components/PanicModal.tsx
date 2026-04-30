@@ -82,6 +82,104 @@ function QuickDistractionGame() {
   );
 }
 
+function TasbihCounter() {
+  const [count, setCount] = React.useState(0);
+  const [phase, setPhase] = React.useState(0); // 0: SubhanAllah, 1: Alhamdulillah, 2: Allahu Akbar
+
+  const phases = [
+    { name: "SubhanAllah", sub: "Glória a Allah" },
+    { name: "Alhamdulillah", sub: "Louvado seja Allah" },
+    { name: "Allahu Akbar", sub: "Allah é o Maior" },
+  ];
+
+  const handleIncrement = () => {
+    if (count < 33) {
+      setCount(prev => prev + 1);
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    } else {
+      if (phase < 2) {
+        setPhase(prev => prev + 1);
+        setCount(1);
+      } else {
+        setPhase(0);
+        setCount(0);
+      }
+    }
+  };
+
+  const reset = () => {
+    setCount(0);
+    setPhase(0);
+  };
+
+  return (
+    <Surface elevation={1} className="p-6 relative overflow-hidden border border-primary/10">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h4 className="text-xs font-black uppercase tracking-widest text-primary">Tasbih Digital</h4>
+          <p className="text-[10px] text-on-surface-variant opacity-60">Distração Ativa & Dhikr</p>
+        </div>
+        <button onClick={reset} className="text-[10px] font-bold text-on-surface-variant hover:text-primary transition-colors">
+          REINICIAR
+        </button>
+      </div>
+
+      <div className="flex flex-col items-center text-center">
+        <motion.div 
+          key={phase}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mb-1"
+        >
+          <div className="text-2xl font-black text-on-surface tracking-tight leading-none">{phases[phase].name}</div>
+          <div className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1 opacity-70">{phases[phase].sub}</div>
+        </motion.div>
+
+        <div className="relative my-6 h-36 w-36 flex items-center justify-center">
+          <svg className="absolute inset-0 h-full w-full -rotate-90 transform">
+            <circle cx="72" cy="72" r="66" fill="transparent" stroke="currentColor" strokeWidth="6" className="text-surface-variant/30" />
+            <motion.circle
+              cx="72"
+              cy="72"
+              r="66"
+              fill="transparent"
+              stroke="currentColor"
+              strokeWidth="6"
+              strokeDasharray={2 * Math.PI * 66}
+              animate={{ strokeDashoffset: 2 * Math.PI * 66 * (1 - count / 33) }}
+              className="text-primary"
+              strokeLinecap="round"
+            />
+          </svg>
+          <div className="flex flex-col items-center">
+            <span className="text-5xl font-black text-on-surface font-mono leading-none">{count}</span>
+            <span className="text-[10px] font-bold text-on-surface-variant opacity-40 mt-1">/ 33</span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleIncrement}
+          className="h-20 w-20 rounded-full bg-primary text-on-primary shadow-lg shadow-primary/30 active:scale-90 transition-all flex items-center justify-center group"
+          title="Clique para contar"
+        >
+          <Play className="h-8 w-8 fill-current group-active:scale-110" />
+        </button>
+        
+        <div className="mt-6 flex gap-1.5">
+          {[0, 1, 2].map(p => (
+            <div 
+              key={p} 
+              className={`h-1 w-10 rounded-full transition-all duration-500 ${p === phase ? "bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]" : "bg-surface-variant/50"}`} 
+            />
+          ))}
+        </div>
+      </div>
+    </Surface>
+  );
+}
+
 export default function PanicModal({
   isOpen,
   onClose,
@@ -228,7 +326,7 @@ export default function PanicModal({
                     </div>
                   </Surface>
 
-                  <QuickDistractionGame />
+                  <TasbihCounter />
                 </div>
               </div>
             </div>
