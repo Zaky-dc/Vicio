@@ -87,9 +87,9 @@ function TasbihCounter() {
   const [phase, setPhase] = React.useState(0); // 0: SubhanAllah, 1: Alhamdulillah, 2: Allahu Akbar
 
   const phases = [
-    { name: "SubhanAllah", sub: "Glória a Allah" },
-    { name: "Alhamdulillah", sub: "Louvado seja Allah" },
-    { name: "Allahu Akbar", sub: "Allah é o Maior" },
+    { name: "SubhanAllah", arabic: "سُبْحَانَ ٱللَّٰهِ", sub: "Glória a Allah" },
+    { name: "Alhamdulillah", arabic: "ٱلْحَمْدُ لِلَّٰهِ", sub: "Louvado seja Allah" },
+    { name: "Allahu Akbar", arabic: "ٱللَّٰهُ أَكْبَرُ", sub: "Allah é o Maior" },
   ];
 
   const handleIncrement = () => {
@@ -133,8 +133,9 @@ function TasbihCounter() {
           animate={{ opacity: 1, scale: 1 }}
           className="mb-1"
         >
-          <div className="text-2xl font-black text-on-surface tracking-tight leading-none">{phases[phase].name}</div>
-          <div className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1 opacity-70">{phases[phase].sub}</div>
+          <div className="text-xl font-black text-on-surface tracking-tight leading-none mb-1">{phases[phase].name}</div>
+          <div className="text-2xl font-black text-primary leading-none my-2" dir="rtl">{phases[phase].arabic}</div>
+          <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-70">{phases[phase].sub}</div>
         </motion.div>
 
         <div className="relative my-6 h-36 w-36 flex items-center justify-center">
