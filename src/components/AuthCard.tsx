@@ -45,6 +45,21 @@ export default function AuthCard({
     }
   }
 
+  async function signInAnonymously() {
+    if (!supabase) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+      onAuthed(null); // Anonymous user has no email
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao entrar anonimamente.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="w-full space-y-6">
       <div className="flex bg-surface-variant/30 p-1 rounded-2xl">
@@ -109,13 +124,34 @@ export default function AuthCard({
         </div>
       )}
 
-      <Button
-        onClick={submit}
-        disabled={busy || !email || !password}
-        className="w-full py-4 text-base"
-      >
-        {busy ? "Processando..." : mode === "signin" ? "Acessar Conta" : "Criar Minha Conta"}
-      </Button>
+      <div className="space-y-3">
+        <Button
+          onClick={submit}
+          disabled={busy || !email || !password}
+          className="w-full py-4 text-base"
+        >
+          {busy ? "Processando..." : mode === "signin" ? "Acessar Conta" : "Criar Minha Conta"}
+        </Button>
+
+        <div className="relative py-2">
+          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-outline/10"></div></div>
+          <div className="relative flex justify-center text-[10px] uppercase font-bold text-on-surface-variant/40 bg-surface px-2 w-fit mx-auto">OU</div>
+        </div>
+
+        <div className="space-y-2">
+          <button
+            onClick={signInAnonymously}
+            disabled={busy}
+            className="w-full py-3 rounded-2xl bg-surface-variant/20 hover:bg-surface-variant/40 text-on-surface font-bold text-sm transition-all border border-outline/10"
+          >
+            Entrar como Anônimo
+          </button>
+          <p className="text-[10px] text-center text-on-surface-variant opacity-60 leading-relaxed px-4">
+            <span className="text-red-500 font-black">AVISO:</span> Como anônimo, seus dados ficam vinculados apenas a este navegador. 
+            Se limpar o histórico ou trocar de dispositivo, perderá o acesso ao seu progresso.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
