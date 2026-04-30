@@ -23,6 +23,12 @@ type VicioRow = {
   created_at: string;
 };
 
+type CommitRow = {
+  vicio_id: string;
+  commit_date: string;
+  status: "success" | "relapse";
+};
+
 type PanicContactRow = {
   id: string;
   name: string;
@@ -37,6 +43,7 @@ export default function HomePage() {
   const [loadingAuth, setLoadingAuth] = React.useState(true);
 
   const [vicios, setVicios] = React.useState<VicioRow[]>([]);
+  const [allCommits, setAllCommits] = React.useState<CommitRow[]>([]);
   const [contacts, setContacts] = React.useState<PanicContactRow[]>([]);
   const [panicOpen, setPanicOpen] = React.useState(false);
 
@@ -75,6 +82,10 @@ export default function HomePage() {
 
       const { data: cData } = await supabase.from("panic_contacts").select("*").order("created_at", { ascending: false });
       if (cData) setContacts(cData as PanicContactRow[]);
+
+      // Fetch all commits for overview
+      const { data: commits } = await supabase.from("vicio_commits").select("*").order("commit_date", { ascending: true });
+      if (commits) setAllCommits(commits as CommitRow[]);
     }
     load();
   }, [userId, supabase]);
@@ -96,6 +107,34 @@ export default function HomePage() {
     });
     const { data } = await supabase.from("panic_contacts").select("*").order("created_at", { ascending: false });
     setContacts((data as PanicContactRow[]) ?? []);
+  }
+
+  // Aggregated status map for the sidebar calendar
+  const aggregatedStatusMap = React.useMemo(() => {
+    const map = new Map<string, "success" | "relapse">();
+    allCommits.forEach(c => {
+      const existing = map.get(c.commit_date);
+      // If there's a relapse in any habit, the day is marked as relapse
+      if (c.status === "relapse" || existing === "relapse") {
+        map.set(c.commit_date, "relapse");
+      } else {
+        map.set(c.commit_date, "success");
+      }
+    });
+    return map;
+  }, [allCommits]);
+
+  // Helper to get last 7 days of status for a specific vicio
+  function getMiniHeatmap(vicioId: string) {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const iso = toISODate(d);
+      const commit = allCommits.find(c => c.vicio_id === vicioId && c.commit_date === iso);
+      days.push({ iso, status: commit?.status });
+    }
+    return days;
   }
 
   if (loadingAuth) {
@@ -171,12 +210,27 @@ export default function HomePage() {
                             elevation={0} 
                             className="group relative overflow-hidden p-5 transition-all hover:ring-2 hover:ring-primary/50"
                           >
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between mb-4">
                               <div>
                                 <h3 className="font-black text-lg group-hover:text-primary transition-colors">{v.name}</h3>
-                                <p className="text-xs font-medium opacity-70 mt-1">Início: {v.start_date}</p>
+                                <p className="text-xs font-medium opacity-70 mt-0.5">Iniciado em {v.start_date}</p>
                               </div>
                               <ChevronRight className="h-5 w-5 text-on-surface-variant group-hover:translate-x-1 transition-transform" />
+                            </div>
+
+                            <div className="flex gap-1.5 items-center">
+                              {getMiniHeatmap(v.id).map((day, idx) => (
+                                <div 
+                                  key={idx}
+                                  className={`h-2.5 w-2.5 rounded-sm flex-shrink-0 transition-colors ${
+                                    day.status === "success" ? "bg-green-500" :
+                                    day.status === "relapse" ? "bg-red-500" :
+                                    "bg-surface-variant/50"
+                                  }`}
+                                  title={day.iso}
+                                />
+                              ))}
+                              <span className="text-[10px] font-bold text-on-surface-variant uppercase ml-2 opacity-50">Últimos 7 dias</span>
                             </div>
                           </Surface>
                         </Link>
@@ -191,7 +245,7 @@ export default function HomePage() {
               <section>
                 <div className="flex items-center gap-2 mb-4 px-1">
                   <ShieldAlert className="h-5 w-5 text-red-600" />
-                  <h2 className="text-lg font-black">Linha de Frente</h2>
+                  <h2 className="text-lg font-black text-on-background">Linha de Frente</h2>
                 </div>
                 <PanicContactsForm onCreate={createContact} />
                 <Button variant="error" className="w-full mt-4 py-6 gap-3 rounded-2xl shadow-lg shadow-red-500/20" onClick={() => setPanicOpen(true)}>
@@ -203,17 +257,20 @@ export default function HomePage() {
               <section>
                 <div className="flex items-center gap-2 mb-4 px-1">
                   <CalendarIcon className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-black">Visão Geral</h2>
+                  <h2 className="text-lg font-black text-on-background">Visão Consolidada</h2>
                 </div>
                 <Surface elevation={1} className="p-5">
-                  <CalendarMonth
-                    monthDate={new Date()}
-                    selectedISODate={todayISO}
-                    onSelectISODate={() => {}}
-                    statusMap={new Map()}
-                  />
-                  <p className="mt-4 text-xs font-medium text-on-surface-variant leading-relaxed italic">
-                    "Um dia de cada vez. O progresso não é linear, mas a persistência é o que importa."
+                  <div className="mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">Status Global (Todos os Vícios)</p>
+                    <CalendarMonth
+                      monthDate={new Date()}
+                      selectedISODate={todayISO}
+                      onSelectISODate={() => {}}
+                      statusMap={aggregatedStatusMap}
+                    />
+                  </div>
+                  <p className="mt-4 text-xs font-medium text-on-surface-variant leading-relaxed italic opacity-80 border-t border-outline/10 pt-4">
+                    "O sucesso é a soma de pequenos esforços repetidos dia após dia."
                   </p>
                 </Surface>
               </section>
