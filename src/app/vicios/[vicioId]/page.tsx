@@ -102,19 +102,72 @@ export default function VicioPage() {
     load();
   }, [vicioId, userId, supabase]);
 
+  const [bestRecord, setBestRecord] = React.useState(0);
+
   const loadStats = React.useCallback(async () => {
     if (!vicioId || !vicio || !supabase) return;
 
+    // 1. Fetch ALL commits to calculate current streak and best record
     const { data: allCommits } = await supabase
       .from("vicio_commits")
-      .select("status")
-      .eq("vicio_id", vicioId);
+      .select("commit_date, status")
+      .eq("vicio_id", vicioId)
+      .order("commit_date", { ascending: true });
 
     if (allCommits) {
       setTotalSuccess(allCommits.filter((c: any) => c.status === "success").length);
       setTotalRelapse(allCommits.filter((c: any) => c.status === "relapse").length);
+
+      // --- Calculate Current Streak and Best Record ---
+      // We'll iterate through all dates to find the longest sequence and the current one
+      let currentS = 0;
+      let maxS = 0;
+      
+      // Sort commits by date is already done. Now let's calculate.
+      // We treat any day NOT marked as "relapse" as a continuation IF it's marked as success.
+      // However, a simple way: just count consecutive successes.
+      
+      const commitMap = new Map<string, string>();
+      allCommits.forEach((c: any) => commitMap.set(c.commit_date, c.status));
+
+      // Current Streak Calculation (starting from today backwards)
+      let checkDate = new Date(); // Start from today
+      let tempCurrent = 0;
+      while (true) {
+        const iso = toISODate(checkDate);
+        const status = commitMap.get(iso);
+        if (status === "success") {
+          tempCurrent++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else if (status === "relapse") {
+          break; // Streak broken
+        } else {
+          // No record for this day. In a strict streak, we might break.
+          // But usually, we only break on RELAPSE or if too many days passed.
+          // Let's be lenient: only break on RELAPSE for Best Record, 
+          // but for Current Streak, let's stop if we hit an empty day before reaching start_date.
+          if (toISODate(checkDate) < vicio.start_date) break;
+          checkDate.setDate(checkDate.getDate() - 1);
+        }
+      }
+      setStreakDays(tempCurrent);
+
+      // Best Record Calculation (Historical)
+      let tempBest = 0;
+      let streakCount = 0;
+      // We'll just count the longest chain of 'success' without a 'relapse' in between
+      allCommits.forEach((c: any) => {
+        if (c.status === "success") {
+          streakCount++;
+          if (streakCount > tempBest) tempBest = streakCount;
+        } else if (c.status === "relapse") {
+          streakCount = 0;
+        }
+      });
+      setBestRecord(tempBest);
     }
 
+    // 2. Fetch current month commits for the calendar
     const start = startOfMonth(monthDate);
     const end = endOfMonth(monthDate);
     const { data: monthCommits } = await supabase
@@ -127,20 +180,6 @@ export default function VicioPage() {
     const map = new Map<string, DayStatus>();
     monthCommits?.forEach((c: any) => map.set(c.commit_date, c.status as DayStatus));
     setStatusMap(map);
-
-    const { data: lastRelapse } = await supabase
-      .from("vicio_commits")
-      .select("commit_date")
-      .eq("vicio_id", vicioId)
-      .eq("status", "relapse")
-      .lte("commit_date", todayISO)
-      .order("commit_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const baseDate = lastRelapse?.commit_date ? parseISODateLocal(lastRelapse.commit_date) : parseISODateLocal(vicio.start_date);
-    const diff = daysBetweenCalendarDates(parseISODateLocal(todayISO), baseDate);
-    setStreakDays(Math.max(0, diff));
   }, [vicioId, vicio, monthDate, supabase, todayISO]);
 
   React.useEffect(() => {
@@ -373,32 +412,32 @@ export default function VicioPage() {
                     level="bronze" 
                     label="Primeiros Passos" 
                     days={7} 
-                    isUnlocked={streakDays >= 7} 
+                    isUnlocked={bestRecord >= 7} 
                   />
                   <AchievementBadge 
                     level="silver" 
                     label="Firmeza" 
                     days={30} 
-                    isUnlocked={streakDays >= 30} 
+                    isUnlocked={bestRecord >= 30} 
                   />
                   <AchievementBadge 
                     level="gold" 
                     label="Vitória" 
                     days={90} 
-                    isUnlocked={streakDays >= 90} 
+                    isUnlocked={bestRecord >= 90} 
                   />
                   <AchievementBadge 
                     level="platinum" 
                     label="Domínio" 
                     days={180} 
-                    isUnlocked={streakDays >= 180} 
+                    isUnlocked={bestRecord >= 180} 
                   />
                   <div className="col-span-2">
                     <AchievementBadge 
                       level="diamond" 
                       label="Nova Vida" 
                       days={365} 
-                      isUnlocked={streakDays >= 365} 
+                      isUnlocked={bestRecord >= 365} 
                     />
                   </div>
                 </div>
