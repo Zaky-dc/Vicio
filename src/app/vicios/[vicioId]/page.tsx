@@ -13,7 +13,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, AlertCircle, TrendingUp, Calendar as CalendarIcon, CheckCircle2, XCircle, Phone } from "lucide-react";
+import { ChevronLeft, AlertCircle, TrendingUp, Calendar as CalendarIcon, CheckCircle2, XCircle, Phone, Pencil, Check, X as XIcon } from "lucide-react";
 
 import CalendarMonth, { DayStatus } from "@/components/CalendarMonth";
 import PanicModal from "@/components/PanicModal";
@@ -61,6 +61,8 @@ export default function VicioPage() {
   const [message, setMessage] = React.useState<{ title: string; body: string; type: "success" | "error" | "info" } | null>(null);
   const [panicOpen, setPanicOpen] = React.useState(false);
   const [contacts, setContacts] = React.useState<PanicContactRow[]>([]);
+  const [isEditingName, setIsEditingName] = React.useState(false);
+  const [editName, setEditName] = React.useState("");
 
   const todayISO = React.useMemo(() => toISODate(new Date()), []);
 
@@ -88,7 +90,10 @@ export default function VicioPage() {
     if (!vicioId || !userId || !supabase) return;
     async function load() {
       const { data: vData } = await supabase.from("vices").select("*").eq("id", vicioId).maybeSingle();
-      if (vData) setVicio(vData as VicioRow);
+      if (vData) {
+        setVicio(vData as VicioRow);
+        setEditName(vData.name);
+      }
 
       const { data: cData } = await supabase.from("panic_contacts").select("*").order("created_at", { ascending: false });
       if (cData) setContacts(cData as PanicContactRow[]);
@@ -141,34 +146,50 @@ export default function VicioPage() {
     loadStats();
   }, [loadStats]);
 
+  async function updateVicioName() {
+    if (!vicioId || !supabase || !editName.trim()) return;
+    const { error } = await supabase.from("vices").update({ name: editName }).eq("id", vicioId);
+    if (!error) {
+      setVicio(prev => prev ? { ...prev, name: editName } : null);
+      setIsEditingName(false);
+    }
+  }
+
   async function setStatusForDate(isoDate: string, status: DayStatus) {
     if (!vicioId || !supabase) return;
-    const { error } = await supabase.from("vicio_commits").upsert({
-      user_id: userId,
-      vicio_id: vicioId,
-      commit_date: isoDate,
-      status,
-    });
 
-    if (!error) {
-      if (status === "success") {
-        setMessage({ 
-          title: "Parabéns!", 
-          body: "Mais um passo em direção à liberdade. Continue assim!", 
-          type: "success" 
-        });
-      } else if (status === "relapse") {
-        const sortedDates = Array.from(statusMap.keys()).sort();
-        const prevDateStr = sortedDates.reverse().find(d => d < isoDate);
-        const daysWithout = prevDateStr ? daysBetweenCalendarDates(parseISODateLocal(isoDate), parseISODateLocal(prevDateStr)) : 0;
+    // Toggle logic: If same status, delete it
+    if (statusMap.get(isoDate) === status) {
+      await supabase.from("vicio_commits").delete().eq("vicio_id", vicioId).eq("commit_date", isoDate);
+      setMessage({ title: "Removido", body: "Registro removido com sucesso.", type: "info" });
+    } else {
+      const { error } = await supabase.from("vicio_commits").upsert({
+        user_id: userId,
+        vicio_id: vicioId,
+        commit_date: isoDate,
+        status,
+      }, { onConflict: "vicio_id,commit_date" });
 
-        setMessage({ 
-          title: "Não desanime!", 
-          body: daysWithout > 1 
-            ? `Você ficou ${daysWithout} dias limpo. Cada esforço vale a pena. Recomece agora mesmo!` 
-            : "Uma falha não define sua jornada. O que importa é levantar e continuar tentando.", 
-          type: "error"
-        });
+      if (!error) {
+        if (status === "success") {
+          setMessage({ 
+            title: "Parabéns!", 
+            body: "Mais um passo em direção à liberdade. Continue assim!", 
+            type: "success" 
+          });
+        } else if (status === "relapse") {
+          const sortedDates = Array.from(statusMap.keys()).sort();
+          const prevDateStr = sortedDates.reverse().find(d => d < isoDate);
+          const daysWithout = prevDateStr ? daysBetweenCalendarDates(parseISODateLocal(isoDate), parseISODateLocal(prevDateStr)) : 0;
+
+          setMessage({ 
+            title: "Não desanime!", 
+            body: daysWithout > 1 
+              ? `Você ficou ${daysWithout} dias limpo. Cada esforço vale a pena. Recomece agora mesmo!` 
+              : "Uma falha não define sua jornada. O que importa é levantar e continuar tentando.", 
+            type: "error"
+          });
+        }
       }
     }
     loadStats();
@@ -194,10 +215,37 @@ export default function VicioPage() {
           <Link href="/" className="h-10 w-10 flex items-center justify-center rounded-full bg-surface-variant/50 text-on-surface hover:bg-surface-variant transition-colors">
             <ChevronLeft className="h-6 w-6" />
           </Link>
-          <div>
-            <h1 className="text-2xl font-black text-on-background tracking-tight">
-              {vicio?.name ?? "Carregando..."}
-            </h1>
+          <div className="flex-1 group">
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="bg-surface-variant/50 border-none rounded-lg px-3 py-1 text-xl font-black focus:ring-2 focus:ring-primary outline-none w-full max-w-xs"
+                  autoFocus
+                />
+                <button onClick={updateVicioName} className="p-2 bg-primary text-on-primary rounded-full hover:bg-primary/90">
+                  <Check className="h-4 w-4" />
+                </button>
+                <button onClick={() => setIsEditingName(false)} className="p-2 bg-surface-variant text-on-surface rounded-full hover:bg-surface-variant/80">
+                  <XIcon className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-black text-on-background tracking-tight">
+                  {vicio?.name ?? "Carregando..."}
+                </h1>
+                <button 
+                  onClick={() => setIsEditingName(true)} 
+                  className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-surface-variant rounded-full transition-all"
+                  title="Editar nome"
+                >
+                  <Pencil className="h-4 w-4 opacity-50" />
+                </button>
+              </div>
+            )}
             <p className="text-sm font-medium text-on-surface-variant flex items-center gap-1">
               <TrendingUp className="h-4 w-4 text-primary" />
               Sequência: <span className="text-primary font-bold">{streakDays} dias</span>
