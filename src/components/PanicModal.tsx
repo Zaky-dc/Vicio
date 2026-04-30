@@ -176,6 +176,11 @@ function TasbihCounter() {
             />
           ))}
         </div>
+
+        <p className="mt-6 text-[10px] leading-relaxed text-on-surface-variant opacity-60 max-w-[240px]">
+          <span className="font-bold text-primary">Lembrete:</span> A Sunnah é contar com os dedos da mão direita. 
+          Usa este contador digital como uma ferramenta de apoio para manteres o foco e a tua contagem caso precises.
+        </p>
       </div>
     </Surface>
   );
