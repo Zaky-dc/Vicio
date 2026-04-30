@@ -21,6 +21,7 @@ import { Surface } from "@/components/ui/Surface";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { getSupabaseClient } from "@/lib/supabase/browserClient";
+import { AchievementBadge, BadgeLevel } from "@/components/ui/AchievementBadge";
 import { calcStreakDays } from "@/lib/vicios/streak";
 import { daysBetweenCalendarDates, parseISODateLocal, toISODate } from "@/lib/vicios/date";
 import { formatDaysWithout, getMotivationalMessage } from "@/lib/vicios/motivacao";
@@ -365,7 +366,45 @@ export default function VicioPage() {
                 )}
               </AnimatePresence>
             </Surface>
-            <Button variant="error" className="w-full py-6 gap-3 rounded-2xl shadow-xl shadow-red-500/20 md:hidden" onClick={() => setPanicOpen(true)}>
+              <Surface elevation={2} className="p-6">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-primary mb-4">Suas Conquistas</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <AchievementBadge 
+                    level="bronze" 
+                    label="Primeiros Passos" 
+                    days={7} 
+                    isUnlocked={streakDays >= 7} 
+                  />
+                  <AchievementBadge 
+                    level="silver" 
+                    label="Firmeza" 
+                    days={30} 
+                    isUnlocked={streakDays >= 30} 
+                  />
+                  <AchievementBadge 
+                    level="gold" 
+                    label="Vitória" 
+                    days={90} 
+                    isUnlocked={streakDays >= 90} 
+                  />
+                  <AchievementBadge 
+                    level="platinum" 
+                    label="Domínio" 
+                    days={180} 
+                    isUnlocked={streakDays >= 180} 
+                  />
+                  <div className="col-span-2">
+                    <AchievementBadge 
+                      level="diamond" 
+                      label="Nova Vida" 
+                      days={365} 
+                      isUnlocked={streakDays >= 365} 
+                    />
+                  </div>
+                </div>
+              </Surface>
+
+              <Button variant="error" className="w-full py-6 gap-3 rounded-2xl shadow-xl shadow-red-500/20 md:hidden" onClick={() => setPanicOpen(true)}>
                 <AlertCircle className="h-6 w-6" />
                 <span className="text-lg">PÂNICO</span>
               </Button>
