@@ -184,6 +184,20 @@ export default function HomePage() {
         ) : (
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             <div className="lg:col-span-8 space-y-8">
+              {randomHadith && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="relative overflow-hidden rounded-3xl p-6 bg-primary/5 border border-primary/10"
+                >
+                  <div className="relative z-10 italic text-lg font-medium text-on-background leading-relaxed">
+                    "{randomHadith.content_pt}"
+                  </div>
+                  <div className="mt-2 font-black text-xs text-primary uppercase tracking-widest">— {randomHadith.source}</div>
+                  <div className="absolute top-[-20px] left-[-20px] text-8xl text-primary/5 font-serif select-none pointer-events-none">“</div>
+                </motion.div>
+              )}
+
               <section>
                 <div className="flex items-center justify-between mb-4 px-1">
                   <h2 className="text-xl font-black flex items-center gap-2 text-on-background">

@@ -14,9 +14,9 @@ type PanicContact = {
 };
 
 const YOUTUBE_VIDEOS: { title: string; videoId: string }[] = [
-  { title: "Respiração", videoId: "0c1D0v7pZyE" },
-  { title: "Música Relax", videoId: "C0DPdy98e4c" },
-  { title: "Meditação", videoId: "fJ9rUzIMcZQ" },
+  { title: "Paciência (Sabr)", videoId: "r2iF_5DQQa8" },
+  { title: "Misericórdia de Allah", videoId: "9x_z_zJh0aI" },
+  { title: "Arrependimento (Taubah)", videoId: "kSsNpOJi-to" },
 ];
 
 const EMERGENCY_LINES = [

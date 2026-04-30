@@ -182,11 +182,26 @@ export default function VicioPage() {
           const prevDateStr = sortedDates.reverse().find(d => d < isoDate);
           const daysWithout = prevDateStr ? daysBetweenCalendarDates(parseISODateLocal(isoDate), parseISODateLocal(prevDateStr)) : 0;
 
+          // Fetch random Hadith for motivation
+          const { data: hadithData } = await supabase
+            .from("hadiths")
+            .select("content_pt, source")
+            .limit(100); 
+          
+          let incentiveText = daysWithout > 1 
+            ? `Você já provou que consegue ao ficar ${daysWithout} dias limpo. Cada esforço conta. Recomece agora mesmo com fé!` 
+            : "Uma falha não define sua jornada. O arrependimento é o primeiro passo para a vitória. Continue tentando!";
+
+          let motivationalBody = incentiveText;
+
+          if (hadithData && hadithData.length > 0) {
+            const randomH = hadithData[Math.floor(Math.random() * hadithData.length)];
+            motivationalBody = `"${randomH.content_pt}"\n— ${randomH.source}\n\n${incentiveText}`;
+          }
+
           setMessage({ 
-            title: "Não desanime!", 
-            body: daysWithout > 1 
-              ? `Você ficou ${daysWithout} dias limpo. Cada esforço vale a pena. Recomece agora mesmo!` 
-              : "Uma falha não define sua jornada. O que importa é levantar e continuar tentando.", 
+            title: "Não Desanime!", 
+            body: motivationalBody,
             type: "error"
           });
         }
